@@ -1,9 +1,14 @@
-#!/usr/bin/perl -p
+#!/usr/bin/perl
 
 # Filters a metadata file from START, to translate its
 # accented characters into latex format for the DB file.
 #
 # !!! Isn't there a Perl module that could handle this?
+
+use utf8;
+use open qw(:std :utf8);
+
+while (<>) {
 
 s/Ä/\\\"\{A\}/g;
 s/Ë/\\\"{E}/g;
@@ -122,3 +127,7 @@ s/#=%=##/#=%=#\\#/g;
 s/##=%=#/\\##=%=#/g;
 
 s/([^\\])(\@)/$1\$@\$/g;  # unescaped at-sign
+
+print;
+
+}

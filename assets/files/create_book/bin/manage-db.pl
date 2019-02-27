@@ -3,6 +3,9 @@
 # Database Management Script for Generating Proceedings
 # written by Philipp Koehn
 
+use utf8;
+use open qw(:std :utf8);
+
 my $pagecount = 1;
 my $___JUST_COPYRIGHT = 0;
 
@@ -61,7 +64,7 @@ sub create_db {
 	    print STDERR "Paper $_: No metadata file $metadata\n";
 	}
 	else {
-	    open(METADATA,"$ENV{ACLPUB}/bin/ascii-to-db.pl $metadata |") || die;
+	    open(METADATA,"$ENV{ACLPUB}/bin/start-to-db.pl $metadata |") || die;
 	    my ($id,$title,$shorttitle,$copyright,$organization,$jobtitle,$abstract,$pagecount,@FIRST,@LAST,@ORG) = (0,"","","","","","",0);
 	    while(<METADATA>) {
 		s/[\n\r]+//g;
@@ -262,7 +265,7 @@ sub include {
 } 
 
 sub order {
-    my %DB = load_db(0,0);
+    my %DB = load_db(0);
     my (@ORDER,@SCHEDULE,%TIME,%DUP_CHECK);
     while(<STDIN>) {
 	chomp;
@@ -367,10 +370,7 @@ sub fname {
 }
 
 sub create_cd {
-    my %DB = load_db(1,1);
-
-    # with content not latex-stripped, for the cd.tex
-    my %DBTEX = load_db(1,0);
+    my %DB = load_db(1);
 
     my($abbrev,$year,$title,$url,$urlpattern);
     while(<STDIN>) {
@@ -429,9 +429,6 @@ sub create_cd {
 
         my $pdf_title = $DB{$id}{"T"}[0];
 
-	# to handle titles with hashes
-        my $pdf_title_tex = $DBTEX{$id}{"T"}[0];
-
         #my $pdf_authors = join("; ", @{$DB{$id}{"A"}});
         my @authors;
         foreach my $author (@{$DB{$id}{"A"}}) {
@@ -444,7 +441,7 @@ sub create_cd {
         my $pdf_authors = join(" ; ", @authors);
         my $pdf_subject = "$abbrev $year";
         while (<TEXTEMPLATE>) {
-            s/__PDFTITLE__/$pdf_title_tex/;
+            s/__PDFTITLE__/$pdf_title/;
             s/__PDFAUTHOR__/$pdf_authors/;
             s/__PDFSUBJECT__/$pdf_subject/;
             print TEX;
@@ -511,13 +508,8 @@ sub create_cd {
 
 
 sub load_db {
-    my ($ordered, $strip_latex) = @_;
-    my $input;
-    if ($strip_latex) {
-        $input = "$ENV{ACLPUB}/bin/db-to-pdfmetadata.pl db |";
-    } else {
-        $input = "db";
-    }
+    my ($ordered) = @_;
+    my $input = "db";
     open(DB,$input) || die;
     my (%PAPER,%DB,$id);
     while(<DB>) {

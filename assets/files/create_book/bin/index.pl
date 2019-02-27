@@ -2,6 +2,9 @@
 
 # Creates an HTML table of contents.  Prints it to stdout.
 
+use utf8;
+use open qw(:std :utf8);
+
 my($db, $meta) = @ARGV;
 
 my($title,$url,$abbrev,$year,$chairs,$urlpattern);

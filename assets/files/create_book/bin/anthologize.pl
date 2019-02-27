@@ -1,5 +1,4 @@
-#!/usr/bin/perl -CSio
-# Last Updated 15.May.2018 by slukin
+#!/usr/bin/env perl
 #
 # Usage: anthologize.pl cdrom anthology volume_id volume_no
 #
@@ -25,34 +24,24 @@
 #   make
 #   make install
 
-use strict 'vars';
-
 use utf8;
+use open qw(:std :utf8);
+
+use strict 'vars';
 use File::Spec;
 use Text::BibTeX;
-use TeX::Encode;	# for latex accents to utf8
-use Encode;
 
 my ($cdrom,$anthology,$volume_id,$volume_no,) = @ARGV;
-my $tempfile = "/tmp/anthologize.$$";
 
 # check ACLPUB path
 die "Need to export ACLPUB=/path/to/acl-pub/assets/files/create_book"
   unless(-d $ENV{ACLPUB});
 
-#### Should leave this to the makefile if we really want to do it
-#
-# if (-e $anthology) {
-#   if (-e "$anthology.bak") {
-#     print STDERR "removing old anthology.bak ...\n";
-#     system("find $anthology.bak -type d | xargs chmod +w")==0 || die;
-#     system("rm -rf $anthology.bak")==0 || die;
-#   }
-#   print STDERR "moving old anthology to anthology.bak ...\n";
-#   `mv $anthology $anthology.bak`;
-# }
-
 #system("rm -rf $anthology")==0 || die;   # if existing "anthology" outdir exists, remove it and start clean
+system("mkdir $anthology")==0 || die;
+
+# anthdir is the new location, e.g., anthology/N/N18
+my $anthdir = join("","$anthology/",substr($volume_id, 0, 1),"/$volume_id");
 
 # iterate through directories in ${unzipped_tar_dir}/{acronym}/proceedings
 for my $dir (glob("$cdrom/*")) {
@@ -71,27 +60,23 @@ for my $dir (glob("$cdrom/*")) {
 
     # Parse the bib entry.
     my $file = Text::BibTeX::File->new($bib);
-    my $bibentry = Text::BibTeX::Entry->new({ binmode => 'utf-8', normalization => 'NFD' }, $file);
-    
+    my $bibentry = Text::BibTeX::Entry->new({ binmode => 'utf-8', normalization => 'NFC' }, $file);
+
     # Extract URL from bib file; translate it to anthology base filename
     warn "Warning: No URL given in $bib (skipping)\n", next unless $bibentry->exists('url');
     my $url = $bibentry->get('url');
     die "Aborting: $url in $bib is not a valid ACL Anthology URL\n"
         unless $url =~ m{^http://www.aclweb.org/anthology/([A-Z])(\d{2})-(\d{0,2})*};
 
-    # anthdir is the new location, e.g., anthology/N/N18
-    my $anthdir = join("","$anthology/",substr($volume_id, 0, 1),"/$volume_id");
-
     # anth is the full location with the final characters as the file id, e.g., anthology/N/N18/N18-1001
     # extract the final 4 characters of the url
-    my $paper_id=substr $url, -4;
+    my $paper_id=substr $url, -4; # bug: $volume_no should override?
     # test for front matter
     if ($paper_id =~ m/-/) {
       # this will become anthology/N/N18/N18-1000
       $paper_id = $volume_no;
     }
 
-    my $anth_top = "$anthdir/$volume_id"; # for xml naming
     my $anth = "$anthdir/$volume_id-$paper_id";
     my $anthfile = "$volume_id-$volume_no";
 
@@ -127,14 +112,6 @@ for my $dir (glob("$cdrom/*")) {
       die "Aborting: No master .bib file exists in $dir\n" if @bibs < 1;
       die "Aborting: Multiple .bib files exist in $dir\n" if @bibs > 1;
       symlink(File::Spec->abs2rel($pdfs[0],$anthdir), "$anth.pdf") || die;
-
-
-      # initialize the .xml file to the top volume
-      my $xml = "$anth_top.xml";
-      open(XML,">>$xml") || die;
-      print XML '<?xml version="1.0" encoding="UTF-8" ?>',"\n";
-      print XML " <volume id=\"$volume_id\">\n";
-      # XML to be continued
 
       ###################################
       # Create the paper-level files in this directory
@@ -179,145 +156,6 @@ for my $dir (glob("$cdrom/*")) {
       print $additional_other[0];
       #symlink(File::Spec->abs2rel($additional_pdf,$anthdir), join("", $anth, ".Attachment.$extension"));
     }
-
-
-    ##############################################################################
-
-    # Convert the current .bib file into XML.
-
-    print XML "   <paper id=\"$paper_id\">\n";
-
-    my %alreadydone;
-    for my $field ('title', 'author', 'editor', $bibentry->fieldlist) {   # force order
-      next unless $bibentry->exists($field);
-      next if $alreadydone{$field}++;
-      my @values = ($field eq 'author' || $field eq 'editor')
-               	       ? map { &formatname($_) } $bibentry->names($field)
-		       : &escape_xml(&latex2utf8($bibentry->get($field)));
-      for my $val (@values) {
-	print XML "        <$field>$val</$field>\n";
-      }
-    }
-    print XML "        <bibtype>".$bibentry->type."</bibtype>\n";
-    print XML "        <bibkey>".$bibentry->key."</bibkey>\n";
-    print XML "   </paper>\n";
-
-    # Finish reading this bib file (there shouldn't be anything else
-    # in it, but the underlying bt_parse_entry library insists on reading
-    # all of this file (so it can clean up) before it goes on to the next file).
-
-    die "Aborting: $bib had more than one entry" if Text::BibTeX::Entry->new({ binmode => 'utf-8', normalization => 'NFD' }, $file);
-
   }
-
-  print XML " </volume>\n";
-  close(XML);
+  system("$ENV{ACLPUB}/bin/bib2anth.pl $dir/bib $volume_id $anthdir/$volume_id.xml")==0 || die;
 }
-
-###############
-
-# produce name in format <first>Ludwig</first><last>van Beethoven</last>
-# bibtex has fields for fist, von, last, and jr
-# but anthology database only has fields for first and last.
-
-# We could use Text::BibTeX::NameFormat for this, i.e.,
-#     my $format = new Text::BibTeX::NameFormat ('fvlj',0);
-#     return $format->apply($name);
-# However, customizing that to put XML tags around the pieces is too annoying.
-
-sub formatname {
-  my($name) = @_;
-  my @tokens = $name->part('first');
-  my $out = "<first>".&escape_xml(&latex2utf8(join(" ",@tokens)))."</first>";
-  $out .= "<last>";
-  @tokens = $name->part('von');
-  if (@tokens && $tokens[0]) {   # nonempty
-      $out .= &escape_xml(&latex2utf8(join(" ",@tokens)));
-      $out .= ' ';
-  }
-  @tokens = $name->part('last');
-  $out .= &escape_xml(&latex2utf8(join(" ",@tokens)));
-  @tokens = $name->part('jr');
-  if (@tokens && $tokens[0]) {   # nonempty
-      # comma before Jr
-      $out .= ", " . &escape_xml(&latex2utf8(join(" ",@tokens)));
-  }
-  $out .= "</last>";    
-  if ($out eq lc($out)) {
-      # some authors have all lowercase names in their softconf profiles
-      # which triggers a bug in TeX::BibTeX name parsing
-      # https://github.com/ambs/Text-BibTeX/issues/29
-      warn "Lowercase name: $out\n Name may be duplicated/misparsed";
-  }
-  return $out;
-}
-
-sub latex2utf8 {
- ($_) = @_;
- my $in;
-
- s/\015//g;       # kill CR from DOS format files
-
- s/\r//g;         # kill CR from DOS format files
-
- # latex cruft
- s/\\@//g;          # kill latex \@, sometimes used after periods
- s/\\,//g;          # kill latex \, sometimes used to widen titles in TOC
- s/\\\\|\\newline\b/\n/g;    # latex newlines
- s/\\ / /g;         # latex hard space: convert to ordinary space
- s/(?<!\\)~/ /g;    # latex hard space ~ unless preceded by backslash: convert to ordinary space
- s/\\&/&/g;         # latex \&
- s/(?<!\\)~/ /g;    # latex hard space ~ unless preceded by backslash: convert to ordinary space
-
- # common latex glyphs
- s/---/—/g;   # em-dash
- s/--/–/g;    # en-dash
- s/(?<!\\)\`\`/“/g;  # smart quotes (also single apostrophe), unless preceded by backslash
- s/(?<!\\)\'\'/”/g;
- s/(?<!\\)\`/‘/g;
- s/(?<!\\)\'/’/g;
-
- # collapse whitespace
- s/[ \t]+/ /g;
- s/^ //;
- s/ $//;
-
- do {
-     $in = $_;		# process innermost tags until none left
-     # italicization
-     # !!! could also try to fix math, e.g., "$n$-gram"
-     s/{\\em ([^\{\}]+)}/$1/g;
-     s/\\textit\{([^\{\}]+)}/$1/g;
-     s/\\emph\{([^\{\}]+)}/$1/g;
-     
-     # boldface
-     s/{\\bf ([^\{\}]+)}/$1/g;
-     s/\\textbf\{([^\{\}]+)}/$1/g;
-     
-     # small caps - just print normally
-     s/\\textsc\{([^\{\}]+)}/$1/g;
- } until ($in eq $_);
-
- # diacritics	removes curly braces, so do this after processing commands
- $_ = decode('latex', $_);	# use TeX::Encode;
-
- # Any remaining backslashed sequences get deleted with a WARNING
- warn "Don't know how to translate $& to UTF; deleting it" while s/\\[A-Za-z]+//;
-
- # eliminate any remaining curly braces (usually used to protect capitalization in bibtex).
- # Unless preceded by backslash.
- s/(?<!\\)[{}]//g;
-
- return $_;
-}
-
-sub escape_xml {
-    my($text) = @_;
-    $text =~ s/&/&amp;/go;
-    $text =~ s/</&lt;/go;
-    $text =~ s/>/&gt;/go;
-    $text =~ s/'/&apos;/go;
-    $text =~ s/"/&quot;/go;
-    return $text;
-}
-

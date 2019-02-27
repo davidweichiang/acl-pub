@@ -32,6 +32,9 @@
 # - in usage 1, a variable is mentioned that is not defined in the meta file.
 # - in usage 3, file.tem contains a line "endef".
 
+use utf8;
+use open qw(:std :utf8);
+
 die "Usage: See $0." unless @ARGV;
 my $meta = shift(@ARGV);
 if (@ARGV) {

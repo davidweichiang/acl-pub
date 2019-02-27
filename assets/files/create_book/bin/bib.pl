@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+use utf8;
+use open qw(:std :utf8);
+
 # READ META FILE FROM STDIN
 
 my ($db,$meta) = @ARGV;
@@ -271,8 +274,7 @@ sub db_to_bib {
   # !!! Conceivably should try to help capitalization of title lines.
   # !!! How about \newline, which is in db_to_html?
   local($_) = @_;
-  s/\\textsc\{(.*?)\}/\1/g; # remove textsc (Noah Smith, 5/19/08)
-  s/\015//g;           # kill CR from DOS format files
+  s/\r//g;           # kill CR from DOS format files
   s/\\\\/ /g;          # latex newline: convert to ordinary space
   s/\s+/ /g;           # collapse whitespace
   s/^\s+//;

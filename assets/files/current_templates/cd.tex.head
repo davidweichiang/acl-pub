@@ -3,16 +3,13 @@
 \usepackage[T1]{fontenc} % fonts to encode unicode
 \usepackage{draftflag}
 \usepackage{times}
-\usepackage{fullpage}
 \usepackage{ifthen}
 
 \usepackage{pdfpages}   % can also use [draft] option
-\usepackage[colorlinks,
-            pdftitle={__PDFTITLE__}, 
+\usepackage[colorlinks]{hyperref} % hyperlinked table of contents, etc.
+\hypersetup{pdftitle={__PDFTITLE__}, % important to set this after loading hyperref
             pdfauthor={__PDFAUTHOR__},
-            pdfsubject={__PDFSUBJECT__},
-            %pdfkeywords={...}
-           ]{hyperref}   % hyperlinked table of contents, etc.
+            pdfsubject={__PDFSUBJECT__}}
 \hypersetup{plainpages=false,  % point to papers, not preface
             pdfpagemode=none}  % no bookmark pane in this case
 
