@@ -24,12 +24,14 @@ sub convert {
 
     $_ = $_[0];
 
+    s/(\\[A-Za-z]+)\s*/$1 /g; # Makes it easier to recognize control sequences
+
     s/\r//g;         # kill CR from DOS format files
 
     # latex cruft
     s/\\@//g;          # kill latex \@, sometimes used after periods
     s/\\,//g;          # kill latex \, sometimes used to widen titles in TOC
-    s/\\\\|\\newline\b/<br>/g;    # latex newlines: convert to <br>
+    s/\\\\|\\newline /<br>/g;    # latex newlines: convert to <br>
     s/\\ / /g;         # latex hard space: convert to ordinary space
     s/(?<!\\)~/ /g;    # latex hard space ~ unless preceded by backslash: convert to ordinary space
     s/\\&/&/g;         # latex \&
@@ -41,11 +43,6 @@ sub convert {
     s/(?<!\\)\'\'/&rdquo;/g;
     s/(?<!\\)\`/&lsquo;/g;
     s/(?<!\\)\'/&rsquo;/g; # bug: 'foo'
-
-    # collapse whitespace
-    s/[ \t]+/ /g;
-    s/^ //;
-    s/ $//;
 
     # diacritics.  Pretty good, but:
     # - Still not quite complete:
@@ -62,11 +59,12 @@ sub convert {
     #   to admit a Latin-1 encoding (see the entry for Dan Tufi\c{s} at W03-0308 
     #   in http://acl.ldc.upenn.edu/W/W03/ ).
 
-    s/\\(.)([^{\\]|\\i)/\\$1\{$2}/g;
+    s/(\\[A-Za-z]+ |\\[^A_Za-z])([^{\\]|\\i )/$1\{$2}/g;
 
     s/\\\'\{a}/&aacute;/g;
     s/\\\'\{e}/&eacute;/g;
-    s/\\\'\{\\?i}/&iacute;/g;
+    s/\\\'\{i}/&iacute;/g;
+    s/\\\'\{\\i }/&iacute;/g;
     s/\\\'\{o}/&oacute;/g;
     s/\\\'\{u}/&uacute;/g;
     s/\\\'\{y}/&yacute;/g;
@@ -75,47 +73,53 @@ sub convert {
 
     s/\\\`\{a}/&agrave;/g;
     s/\\\`\{e}/&egrave;/g;
-    s/\\\`\{\\?i}/&igrave;/g;
+    s/\\\`\{i}/&igrave;/g;
+    s/\\\`\{\\i }/&igrave;/g;
     s/\\\`\{o}/&ograve;/g;
     s/\\\`\{u}/&ugrave;/g;
 
     s/\\\^\{a}/&acirc;/g;
     s/\\\^\{e}/&ecirc;/g;
-    s/\\\^\{\\?i}/&icirc;/g;
+    s/\\\^\{i}/&icirc;/g;
+    s/\\\^\{\\i }/&icirc;/g;
     s/\\\^\{o}/&ocirc;/g;
     s/\\\^\{u}/&ucirc;/g;
 
     s/\\\"\{a}/&auml;/g;
     s/\\\"\{e}/&euml;/g;
-    s/\\\"\{\\?i}/&iuml;/g;
+    s/\\\"\{i}/&iuml;/g;
+    s/\\\"\{\\i }/&iuml;/g;
     s/\\\"\{o}/&ouml;/g;
     s/\\\"\{u}/&uuml;/g;
 
     s/\\\~\{a}/&atilde;/g;
     s/\\\~\{o}/&otilde;/g;
     s/\\\~\{n}/&ntilde;/g;
-    s/\\\~\{\\?i}/&itilde;/g;
+    s/\\\~\{i}/&itilde;/g;
+    s/\\\~\{\\i }/&itilde;/g;
     s/\\\~\{u}/&utilde;/g;
-    s/\\c\{c}/&ccedil;/g;
-    s/\\c\{s}/&#351;/g;
+    
+    s/\\c \{c}/&ccedil;/g;
+    s/\\c \{s}/&#351;/g;
 
-    s/\\v\{C}/&#268;/g;
-    s/\\v\{c}/&#269;/g;
-    s/\\v\{E}/&#282;/g;
-    s/\\v\{e}/&#283;/g;
-    s/\\v\{N}/&#327;/g;
-    s/\\v\{n}/&#328;/g;
-    s/\\v\{R}/&#344;/g;
-    s/\\v\{r}/&#345;/g;
-    s/\\v\{S}/&#352;/g;
-    s/\\v\{s}/&#353;/g;
-    s/\\v\{Z}/&#381;/g;
-    s/\\v\{z}/&#158;/g;
-    s/\{\\AA}/&Aring;/g;
-    s/\{\\aa}/&aring;/g;
-    s/\{\\AE}/&AElig;/g;
-    s/\{\\ae}/&aelig;/g;
-    s/\{\\ss}/&szlig;/g;
+    s/\\v \{C}/&#268;/g;
+    s/\\v \{c}/&#269;/g;
+    s/\\v \{E}/&#282;/g;
+    s/\\v \{e}/&#283;/g;
+    s/\\v \{N}/&#327;/g;
+    s/\\v \{n}/&#328;/g;
+    s/\\v \{R}/&#344;/g;
+    s/\\v \{r}/&#345;/g;
+    s/\\v \{S}/&#352;/g;
+    s/\\v \{s}/&#353;/g;
+    s/\\v \{Z}/&#381;/g;
+    s/\\v \{z}/&#158;/g;
+
+    s/\\AA /&Aring;/g;
+    s/\\aa /&aring;/g;
+    s/\\AE /&AElig;/g;
+    s/\\ae /&aelig;/g;
+    s/\\ss /&szlig;/g;
 
     s/\\\'\{A}/&Aacute;/g;
     s/\\\'\{E}/&Eacute;/g;
@@ -142,17 +146,17 @@ sub convert {
     s/\\\"\{O}/&Ouml;/g;
     s/\\\"\{U}/&Uuml;/g;
 
-    s/\{\\o\}/&oslash;/g; 
-    s/\{\\O\}/&Oslash;/g;  
+    s/\\o /&oslash;/g; 
+    s/\\O /&Oslash;/g;  
 
-    s/\\o/&oslash;/g;
-    s/\\O/&Oslash;/g;
-    s/\\u\{g}/&#287;/g;
+    s/\\u \{g}/&#287;/g;
 
     s/\\\~\{A}/&Atilde;/g;
     s/\\\~\{O}/&Otilde;/g;
     s/\\\~\{N}/&Ntilde;/g;
-    s/\\c\{C}/&Ccedil;/g;
+    
+    s/\\c \{C}/&Ccedil;/g;
+    
     s/\\\'\{S}/&#346;/g;
     s/\\\'\{C}/&#262;/g;
     s/\\\'\{s}/&#347;/g;
@@ -160,7 +164,8 @@ sub convert {
 
     s/\\\=\{a}/&#257;/g;
     s/\\\=\{e}/&#275;/g;
-    s/\\\=\{\\?i}/&#299;/g;
+    s/\\\=\{i}/&#299;/g;
+    s/\\\=\{\\i }/&#299;/g;
     s/\\\=\{o}/&#333;/g;
     s/\\\=\{u}/&#363;/g;
 
@@ -170,38 +175,39 @@ sub convert {
     s/\\\=\{O}/&#332;/g;
     s/\\\=\{U}/&#362;/g;
 
-    s/\{\\L}/&#321/g; 
-    s/\{\\l}/&#322/g; 
+    s/\\L /&#321/g; 
+    s/\\l /&#322/g; 
 
-    s/\\v\{a}/&#259;/g;
+    s/\\v \{a}/&#259;/g;
     
     s/\\\=\{e}/&#275;/g;
     s/\\\=\{u}/&#363;/g;
-    s/\\\=\{\\?i}/&#299;/g;
+    s/\\\=\{i}/&#299;/g;
+    s/\\\=\{\\i }/&#299;/g;
     s/\\\=\{a}/&#257;/g;
 
-    s/\\v\{s}/&#353;/g;
-    s/\\v\{g}/&#289;/g;
+    s/\\v \{s}/&#353;/g;
+    s/\\v \{g}/&#289;/g;
 
-    s/\\c\{k}/&#311;/g;
-    s/\\c\{l}/&#316;/g;
+    s/\\c \{k}/&#311;/g;
+    s/\\c \{l}/&#316;/g;
 
-    s/\\v\{z}/&#158;/g;
-    s/\\v\{c}/&#269;/g;
+    s/\\v \{z}/&#158;/g;
+    s/\\v \{c}/&#269;/g;
 
-    s/\\c\{n}/&#146;/g;
+    s/\\c \{n}/&#146;/g;
 
-    s/\\v\{S}/&#352;/g;
+    s/\\v \{S}/&#352;/g;
 
-    s/\\c\{G}/&#290;/g;
-    s/\\c\{K}/&#310;/g;
-    s/\\c\{L}/&#315;/g;
+    s/\\c \{G}/&#290;/g;
+    s/\\c \{K}/&#310;/g;
+    s/\\c \{L}/&#315;/g;
 
-    s/\\v\{Z}/&#381;/g;
-    s/\\v\{C}/&#268;/g;
+    s/\\v \{Z}/&#381;/g;
+    s/\\v \{C}/&#268;/g;
 
-    s/\\c\{N}/&#325;/g;
-    s/\\c\{S}/&#350;/g;
+    s/\\c \{N}/&#325;/g;
+    s/\\c \{S}/&#350;/g;
 
     # Latex chars
     s/\\_/_/g;     # Underscore.
@@ -226,11 +232,16 @@ sub convert {
     } until ($in eq $_);
 
     # Any remaining backslashed sequences get deleted with a WARNING
-    warn "Don't know how to translate $& to HTML; deleting it" while s/\\[A-Za-z]+//;
+    warn "Don't know how to translate $& to HTML; deleting it" while s/\\[A-Za-z]+\s*|\\.//;
 
     # eliminate any remaining curly braces (usually used to protect capitalization in bibtex).
     # Unless preceded by backslash.
     s/(?<!\\)[{}]//g;
+
+    # collapse whitespace
+    s/[ \t]+/ /g;
+    s/^ //;
+    s/ $//;
 
     # Finally, convert HTML entities to their Unicode equivalents.
     $_ = decode_entities($_);
