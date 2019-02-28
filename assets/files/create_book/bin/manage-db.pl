@@ -11,7 +11,7 @@ my $___JUST_COPYRIGHT = 0;
 
 if ($#ARGV == -1) {
     print STDERR "Options:
-create < submission-info
+create
    create database from START text file
 generate-tex [toc] [program] [index1col] [index2col] [all]
    generate *.tex and *.pdf file from database
@@ -68,24 +68,30 @@ sub create_db {
 	    my ($id,$title,$shorttitle,$copyright,$organization,$jobtitle,$abstract,$pagecount,@FIRST,@LAST,@ORG) = (0,"","","","","","",0);
 	    while(<METADATA>) {
 		s/[\n\r]+//g;
-		my ($field,$value) = split(/\#\=\%?\=\#/);
-		if ($organization ne "" && ! $value && $field && $field !~ /^\=+$/ && $abstract eq "") {
-		    $organization .= "\n\t".$field;
-		} elsif ($abstract ne "" && !$value && $field && $field !~ /^\=+$/) {
-                    $abstract .= "\n\t".$field;
+                if (m/^(.*)\#\=\%?\=\#(.*)$/) {
+                    $field = $1;
+                    $value = $2;
+                    next unless $value;
+                    $id = $value         if $field eq 'SubmissionNumber';
+                    $title = $value      if $field eq 'FinalPaperTitle';
+                    $shorttitle = $value if $field eq 'ShortPaperTitle';
+                    $FIRST[$1] = $value  if $field =~ /Author\{(\d+)\}\{Firstname\}/;
+                    $LAST[$1]  = $value  if $field =~ /Author\{(\d+)\}\{Lastname\}/;
+                    $ORG[$1]  = $value   if $field =~ /Author\{(\d+)\}\{Affiliation\}/;
+                    $copyright = $value  if $field eq 'CopyrightSigned';
+                    $pagecount = $value  if $field eq 'NumberOfPages';
+                    $organization = $value  if $field eq 'Organization';
+                    $jobtitle = $value   if $field eq 'JobTitle';
+                    $abstract = $value   if $field eq 'Abstract';
+                } elsif (m/^\=+$/) {
+                    # End marker
+                } elsif ($field eq 'Organization') {
+                    $organization .= "\n\t".$_;
+                } elsif ($field eq 'Abstract') {
+                    $abstract .= "\n\t".$_;
+                } elsif (!m/^\s*$/) {
+                    print STDERR "warning: $metadata: discarding stray line: $_\n";
                 }
-		next unless $value;
-		$id = $value         if $field eq 'SubmissionNumber';
-		$title = $value      if $field eq 'FinalPaperTitle';
-		$shorttitle = $value if $field eq 'ShortPaperTitle';
-		$FIRST[$1] = $value  if $field =~ /Author\{(\d+)\}\{Firstname\}/;
-		$LAST[$1]  = $value  if $field =~ /Author\{(\d+)\}\{Lastname\}/;
-		$ORG[$1]  = $value   if $field =~ /Author\{(\d+)\}\{Affiliation\}/;
-		$copyright = $value  if $field eq 'CopyrightSigned';
-		$pagecount = $value  if $field eq 'NumberOfPages';
-		$organization = $value  if $field eq 'Organization';
-		$jobtitle = $value   if $field eq 'JobTitle';
-                $abstract = $value   if $field eq 'Abstract';
 	    }
             if (! $___JUST_COPYRIGHT) {
 		print DB "P: $id\n";
@@ -457,7 +463,7 @@ sub create_cd {
 	print TEX "\\citeinfo{$pagecount}{".($pagecount+$length-1)."}\n";
         print TEX "~\\newpage\n";	# create page with citation stamp
         print TEX "\\ClearShipoutPicture\n";
-	for $i (2..$length) {
+	foreach (2..$length) {
 	    print TEX "~\\newpage";	# create pages with nothing but page number
 	}
 
