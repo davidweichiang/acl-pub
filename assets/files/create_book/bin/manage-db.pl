@@ -64,7 +64,8 @@ sub create_db {
 	    print STDERR "Paper $_: No metadata file $metadata\n";
 	}
 	else {
-	    open(METADATA,"$ENV{ACLPUB}/bin/start-to-db.pl $metadata |") || die;
+	    #open(METADATA,"$ENV{ACLPUB}/bin/start-to-db.pl $metadata |") || die;
+	    open(METADATA,"$ENV{ACLPUB}/bin/utf8_to_tex.py -f start $metadata |") || die;
 	    my ($id,$title,$shorttitle,$copyright,$organization,$jobtitle,$abstract,$pagecount,@FIRST,@LAST,@ORG) = (0,"","","","","","",0);
 	    while(<METADATA>) {
 		s/[\n\r]+//g;

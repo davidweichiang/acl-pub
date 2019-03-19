@@ -11,7 +11,7 @@ $Collator = Unicode::Collate->new();
 my($db, $meta) = @ARGV;
 
 my($title,$url,$abbrev,$chairs);
-open(META, "$ENV{ACLPUB}/bin/db-to-html.pl $meta |") || die;
+open(META, "$ENV{ACLPUB}/bin/tex_to_utf8.py -f meta $meta |") || die;
 while (<META>) {
     chomp;
     my ($key,$value) = split(/\s+/,$_,2);
@@ -45,7 +45,7 @@ $end = 0;
 
 my (%authors,@authors);
 
-open(DB,"$ENV{ACLPUB}/bin/db-to-html.pl $db |") || die;
+open(DB,"$ENV{ACLPUB}/bin/tex_to_utf8.py -f db $db |") || die;
 while (<DB>) {
   $line = $_; 
   chomp $line;
@@ -109,7 +109,7 @@ close(DB);
 $count = 0;
 my $text = "<tr class=\"$temp\">";
 foreach my $key (sort { $Collator->cmp($a,$b) } keys %authors) {
-  print STDERR $key, "\n" if ($key =~ m/\&/);
+  print STDERR "author name contains ampersand: ", $key, "\n" if ($key =~ m/\&/);
   my $temp = $classes[$count % 2];
   #print "count = $count, mod = " .$count % 3 . "\n";
   if (($count % 3) == 0) {

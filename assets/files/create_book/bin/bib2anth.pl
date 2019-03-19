@@ -23,7 +23,7 @@ my ($dir, $volume_id, $outfile) = @ARGV;
 die "Need to export ACLPUB=/path/to/acl-pub/assets/files/create_book"
   unless(-d $ENV{ACLPUB});
 
-open XML, "| $ENV{ACLPUB}/bin/db-to-html.pl -f xml > $outfile";
+open XML, "| $ENV{ACLPUB}/bin/tex_to_utf8.py -f xml -o $outfile";
 print XML '<?xml version="1.0" encoding="UTF-8" ?>',"\n";
 print XML " <volume id=\"$volume_id\">\n";
 # XML to be continued

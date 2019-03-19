@@ -38,7 +38,7 @@ foreach my $db (@ARGV) {
 
     my $papnum = 0;
 
-    open(DB,"$ENV{ACLPUB}/bin/db-to-html.pl $db |") || die;
+    open(DB,"$ENV{ACLPUB}/bin/tex_to_utf8.py -f db $db |") || die;
     my @flat = <DB>;
     close DB;
     my $stringfile = join("",@flat);
@@ -64,7 +64,7 @@ foreach my $db (@ARGV) {
 $count = 0;
 print "<tr class=\"$classes[$c++ % 2]\">";
 
-foreach my $author (sort { my_alpha($a) cmp my_alpha($b) } keys %author) {
+foreach my $author (sort { $Collator->cmp($a,$b) } keys %author) {
     if($count>0 && (($count % 3) == 0)) {
 	print "</tr>\n<tr class=\"$classes[$c++ % 2]\">\n";
     }

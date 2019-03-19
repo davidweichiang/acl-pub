@@ -6,7 +6,7 @@ use open qw(:std :utf8);
 my ($db,$meta) = @ARGV;
 
 my ($title,$booktitle, $urlpattern);
-open(META, "$ENV{ACLPUB}/bin/db-to-html.pl $meta |") || die "can't open meta";
+open(META, "$ENV{ACLPUB}/bin/tex_to_utf8.py -f meta $meta |") || die;
 while(<META>) {
     chomp;
     my ($key,$value) = split(/\s+/,$_,2);
@@ -28,7 +28,7 @@ $papnum = 0;
 $authornum = 0;
 $prevblank = 1;
 
-open(DB, "$ENV{ACLPUB}/bin/db-to-html.pl $db |") || die;
+open(DB,"$ENV{ACLPUB}/bin/tex_to_utf8.py -f db $db |") || die;
 while(<DB>) {
   chomp;
   $line = $_;
